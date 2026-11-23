@@ -1,17 +1,17 @@
-module tb_fifo_4bit;
+module tb_fifo;
     logic       clk;
     logic       rst;
     logic       wr_en;
     logic       rd_en;
-    logic [7:1] data_in;
-    logic [7:1] data_out;
+    logic [38:0] data_in;
+    logic [38:0] data_out;
     logic       full;
     logic       empty;
 
     integer i;
 
     // Connect your FIFO
-    fifo_4bit dut (
+    fifo #(.WIDTH(39), .DEPTH(4)) dut (
         .clk      (clk),
         .rst      (rst),
         .wr_en    (wr_en),
@@ -28,7 +28,7 @@ module tb_fifo_4bit;
 
     initial begin
         // 1. Reset the FIFO
-        rst = 1; wr_en = 0; rd_en = 0; data_in = 7'd0;
+        rst = 1; wr_en = 0; rd_en = 0; data_in = '0;
         @(posedge clk); #1;
         $display("RESET  | full=%b empty=%b", full, empty);
 
@@ -39,9 +39,9 @@ module tb_fifo_4bit;
         for (i = 1; i <= 4; i = i + 1) begin
             @(negedge clk);
             wr_en   = 1;
-            data_in = i[6:0];
+            data_in = 39'h5A_0000_0000 + i;
             @(posedge clk); #1;
-            $display("PUSH %0d | full=%b empty=%b | front=%0d", i, full, empty, data_out);
+            $display("PUSH %0d | full=%b empty=%b | front=%h", i, full, empty, data_out);
         end
 
         @(negedge clk);
@@ -52,7 +52,7 @@ module tb_fifo_4bit;
             @(negedge clk);
             rd_en = 1;
             #1;
-            $display("POP  %0d | got=%0d", i, data_out);
+            $display("POP  %0d | got=%h", i, data_out);
             @(posedge clk); #1;
         end
 
