@@ -1,19 +1,20 @@
-Fault-Tolerant 5-Port NOC Router
+## Fault-Tolerant 5-Port NOC Router
+
 A network-on-chip router in SystemVerilog that fixes a flipped bit while a packet is in flight, and flags it when two bits flip, Packets are routed with XY Routing, collisions are settled by round-robin arbiters, and every packet carries a Hamming(39,32) SECDED code.
 
 I'm a first-year ECE student at UIUC. Everything simulates in Icarus Verilog, and every block has its own testbench.
 
-Workings:
+## Workings:
 --> Routes packets between 5 ports (Local, North, South, East, West) using XY routing
 --> Heals any single flipped bit and raises err_single. All 39 bit positions are tested.
 --> Flags any double flip with err_double 
 --> Settles collisions fairly when two inputs want the same output
 --> Supports backpressure with balid/ready: in_ready drops when a FIFO is full, and an output holds its packet when the neighbor isn't ready.
 
-Why I built it:
+## Why I built it:
 Chips are full of tiny wires and memory cells, and sometimes a bit just flips. Noise, a particle strike etc can cause this. On a network-on-chip it matters more than one would initially think, because if the flipped bit lands in a packet's header, the packet goes to the wrong place. Server memory and caches deal with this using ECC. I wanted to build that idea into a router myself. 
 
-How a packet moves:
+## How a packet moves:
 A packet arrives on one of the five input ports as a 39-bit codeword and goes straight into that port’s FIFO, a small buffer that holds up to 4 packets, still encoded. When the packet reaches the front of the FIFO, the ECC decoder checks it. If one bit flipped, the decoder flips it back. If two flipped, it leaves the data alone and raises a flag. Either way, what comes out is the plain 32-bit packet.
 
 The XY router then reads the destination coordinates from that decoded packet, compares them to the router’s own position, and decides which output port the packet wants. That request goes to the arbiter for that output port. Every output has its own arbiter, and if several inputs want the same output on the same cycle, the round-robin arbiter picks one and the rest wait in their FIFOs for another turn.
@@ -32,14 +33,14 @@ West; Index 4; XY output code: 10000
 
 The router sits at a coordinate set by the parameters CUR_X and CUR_Y. A packet goes East or West until its X matches, then North or South until its Y matches, then out the Local port. 
 
-Packet format: 
+## Packet format: 
 Each packet is 32 bits, and the ECC encoder turns it into a 39-bit codeword with 32 data bits, 6 Hamming parity bits, 1 overall parity bit. 
 
 Bits [31:28] correspond to dest_x which refers to the target X coordinate 
 Bits [27:24] correspond to dest_y which refers to the target Y coordinate
 Bits [23:0] correspond to payload which refers to the Data
 
-Design Choices:
+## Design Choices:
 The decoder sits after the FIFO: The packet waits in the buffer as a full 39-bit codeword, so a flip that happens while it’s sitting there gets caught too, not just flips on the wire. On the way out it gets re-encoded, so the next router receives a fresh, valid codeword.
 
 The destination is inside the protected word. Basically, a flipped bit in dest_x or dest_y is fixed before the reader reads it so that it doesn't send a packet the wrong way. 
@@ -94,7 +95,7 @@ iverilog -g2012 -o fifo_sim.out rtl/fifo.sv tb_fifo.sv && vvp fifo_sim.out
 iverilog -g2012 -o arb_sim.out rtl/rr_arbiter.sv tb_arbiter.sv && vvp arb_sim.out
 iverilog -g2012 -o xy_sim.out rtl/xy_route.sv tb_xy_route.sv && vvp xy_sim.out
 
-# noise analysis
+# Noise analysis
 pip3 install matplotlib
 python3 scripts/ecc_analysis.py
 
@@ -116,6 +117,6 @@ The FIFO uses an active-high reset and the router uses an active-low reset, so t
 
 
 
-----------------------------------------------------------Built By Advik Shukla, Computer Engineer @ UIUC-------------------------------------------------------------------------------------------
+Built By Advik Shukla, Computer Engineer @ UIUC
 
 
